@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -256,6 +257,9 @@ func syncStatus(kubeClient client.Client, logger log.FieldLogger) error {
 		return nil
 	}
 
+	// Sort conditions for predictable output and deep equal checks
+	sortConditions(co.Status.Conditions)
+
 	// Update status fields if needed
 	if !reflect.DeepEqual(oldConditions, co.Status.Conditions) ||
 		!reflect.DeepEqual(oldVersions, co.Status.Versions) ||
@@ -396,4 +400,10 @@ func getWatchedSecrets(platformType configv1.PlatformType) []types.NamespacedNam
 
 	secrets = append(secrets, rootSecret)
 	return secrets
+}
+
+func sortConditions(conditions []configv1.ClusterOperatorStatusCondition) {
+	sort.SliceStable(conditions, func(i, j int) bool {
+		return string(conditions[i].Type) < string(conditions[j].Type)
+	})
 }
